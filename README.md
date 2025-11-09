@@ -19,7 +19,7 @@ A modern, feature-rich task management application built with React, Vite, and T
 
 ## 🚀 Demo
 
-[Live Demo](https://your-username.github.io/task-manager) *(Update this after deployment)*
+[Live Demo](https://seta-datnd-6862.github.io/task-manager/) *(Update this after deployment)*
 
 ## 📸 Screenshots
 
@@ -53,7 +53,7 @@ npm -v
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/task-manager.git
+git clone https://github.com/seta-datnd-6862/task-manager.git
 cd task-manager
 ```
 
@@ -182,7 +182,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👤 Author
 
 **Your Name**
-- GitHub: [@your-username](https://github.com/your-username)
+- GitHub: [@seta-datnd-6862](https://github.com/seta-datnd-6862)
 - Email: your.email@example.com
 
 ## 🙏 Acknowledgments
@@ -194,7 +194,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-If you have any questions or issues, please [open an issue](https://github.com/your-username/task-manager/issues).
+If you have any questions or issues, please [open an issue](https://github.com/seta-datnd-6862/task-manager/issues).
 
 ---
 
