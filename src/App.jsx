@@ -4,6 +4,7 @@ import Statistics from './components/Statistics';
 import TaskForm from './components/TaskForm';
 import TaskFilters from './components/TaskFilters';
 import TaskList from './components/TaskList';
+import EnvironmentBadge from './components/EnvironmentBadge';
 
 const App = () => {
   const [tasks, setTasks] = useState([]);
@@ -184,6 +185,8 @@ const App = () => {
         <div className={`rounded-lg shadow-lg p-6 mb-6 ${
           darkMode ? 'bg-gray-800' : 'bg-white'
         }`}>
+
+          <EnvironmentBadge />
           <TaskForm
             isFormVisible={isFormVisible}
             setIsFormVisible={setIsFormVisible}
