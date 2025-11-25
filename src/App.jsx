@@ -1,175 +1,107 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
+import useTasks from './hooks/useTasks';
+import useFilter from './hooks/useFilter';
 import Header from './components/Header';
 import Statistics from './components/Statistics';
+import TaskSearch from './components/TaskSearch';
 import TaskForm from './components/TaskForm';
 import TaskFilters from './components/TaskFilters';
 import TaskList from './components/TaskList';
 import EnvironmentBadge from './components/EnvironmentBadge';
+import { useTheme } from './context/ThemeContext';
 
-const App = () => {
-  const [tasks, setTasks] = useState([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('medium');
+/**
+ * AppContent component
+ * Main application logic
+ */
+const AppContent = () => {
+  const { darkMode } = useTheme();
+  
+  // Task management hook
+  const { 
+    tasks, 
+    addTask, 
+    updateTask, 
+    toggleTask, 
+    deleteTask, 
+    reorderTasks,
+    clearCompleted 
+  } = useTasks();
+
+  // Local state
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
-  const [errors, setErrors] = useState({});
 
-  // Load tasks and theme from localStorage
-  useEffect(() => {
-    const savedTasks = localStorage.getItem('tasks');
-    const savedTheme = localStorage.getItem('darkMode');
-    
-    if (savedTasks) {
-      try {
-        setTasks(JSON.parse(savedTasks));
-      } catch (error) {
-        console.error('Error loading tasks:', error);
-      }
+  // Filter and search tasks with useMemo optimization
+  const filteredTasks = useFilter(tasks, filter, searchQuery);
+
+  /**
+   * Handle form submission for add/edit
+   * Memoized with useCallback
+   */
+  const handleFormSubmit = useCallback((taskData) => {
+    if (editingTask) {
+      updateTask(editingTask.id, taskData);
+    } else {
+      addTask(taskData);
     }
-    
-    if (savedTheme) {
-      setDarkMode(savedTheme === 'true');
-    }
-  }, []);
-
-  // Save tasks to localStorage
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]);
-
-  // Save theme preference
-  useEffect(() => {
-    localStorage.setItem('darkMode', darkMode);
-  }, [darkMode]);
-
-  // Form validation
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!title.trim()) {
-      newErrors.title = 'Title is required';
-    } else if (title.trim().length < 3) {
-      newErrors.title = 'Title must be at least 3 characters';
-    } else if (title.trim().length > 100) {
-      newErrors.title = 'Title must be less than 100 characters';
-    }
-    
-    if (description.trim().length > 500) {
-      newErrors.description = 'Description must be less than 500 characters';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const addTask = () => {
-    if (!validateForm()) return;
-    
-    const newTask = {
-      id: Date.now(),
-      title: title.trim(),
-      description: description.trim(),
-      priority,
-      completed: false,
-      createdAt: new Date().toISOString()
-    };
-    setTasks([newTask, ...tasks]);
-    resetForm();
-  };
-
-  const updateTask = () => {
-    if (!validateForm()) return;
-    
-    setTasks(tasks.map(task =>
-      task.id === editingTask.id
-        ? { ...task, title: title.trim(), description: description.trim(), priority }
-        : task
-    ));
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setPriority('medium');
     setIsFormVisible(false);
     setEditingTask(null);
-    setErrors({});
-  };
+  }, [editingTask, addTask, updateTask]);
 
-  const startEdit = (task) => {
+  /**
+   * Start editing a task
+   * Memoized with useCallback
+   */
+  const handleStartEdit = useCallback((task) => {
     setEditingTask(task);
-    setTitle(task.title);
-    setDescription(task.description);
-    setPriority(task.priority);
     setIsFormVisible(true);
-    setErrors({});
-  };
+  }, []);
 
-  const toggleTask = (id) => {
-    setTasks(tasks.map(task =>
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
-  };
+  /**
+   * Cancel form (add/edit)
+   * Memoized with useCallback
+   */
+  const handleFormCancel = useCallback(() => {
+    setIsFormVisible(false);
+    setEditingTask(null);
+  }, []);
 
-  const deleteTask = (id) => {
+  /**
+   * Handle task deletion with confirmation
+   * Memoized with useCallback
+   */
+  const handleDeleteTask = useCallback((id) => {
     if (window.confirm('Are you sure you want to delete this task?')) {
-      setTasks(tasks.filter(task => task.id !== id));
+      deleteTask(id);
     }
-  };
+  }, [deleteTask]);
 
-  // Drag and drop handlers
-  const handleDragStart = (e, task) => {
+  /**
+   * Drag and drop handlers
+   * Memoized with useCallback
+   */
+  const handleDragStart = useCallback((e, task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
-  };
+  }, []);
 
-  const handleDragOver = (e) => {
+  const handleDragOver = useCallback((e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-  };
+  }, []);
 
-  const handleDrop = (e, targetTask) => {
+  const handleDrop = useCallback((e, targetTask) => {
     e.preventDefault();
-    
-    if (!draggedTask || draggedTask.id === targetTask.id) return;
-    
-    const draggedIndex = tasks.findIndex(t => t.id === draggedTask.id);
-    const targetIndex = tasks.findIndex(t => t.id === targetTask.id);
-    
-    const newTasks = [...tasks];
-    newTasks.splice(draggedIndex, 1);
-    newTasks.splice(targetIndex, 0, draggedTask);
-    
-    setTasks(newTasks);
-    setDraggedTask(null);
-  };
-
-  const getFilteredTasks = () => {
-    switch (filter) {
-      case 'active':
-        return tasks.filter(task => !task.completed);
-      case 'completed':
-        return tasks.filter(task => task.completed);
-      default:
-        return tasks;
+    if (draggedTask && draggedTask.id !== targetTask.id) {
+      reorderTasks(draggedTask.id, targetTask.id);
     }
-  };
-
-  const stats = {
-    total: tasks.length,
-    completed: tasks.filter(t => t.completed).length,
-    active: tasks.filter(t => !t.completed).length,
-    percentage: tasks.length > 0 
-      ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) 
-      : 0
-  };
-
-  const filteredTasks = getFilteredTasks();
+    setDraggedTask(null);
+  }, [draggedTask, reorderTasks]);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -177,56 +109,62 @@ const App = () => {
         ? 'bg-gradient-to-br from-gray-900 to-gray-800' 
         : 'bg-gradient-to-br from-blue-50 to-indigo-100'
     } p-4 md:p-8`}>
+      <EnvironmentBadge />
+      
       <div className="max-w-4xl mx-auto">
-        <Header darkMode={darkMode} onToggleDarkMode={() => setDarkMode(!darkMode)} />
+        <Header />
         
-        <Statistics stats={stats} darkMode={darkMode} />
+        <Statistics tasks={tasks} />
+        
+        <TaskSearch 
+          searchQuery={searchQuery} 
+          onSearchChange={setSearchQuery} 
+        />
         
         <div className={`rounded-lg shadow-lg p-6 mb-6 ${
           darkMode ? 'bg-gray-800' : 'bg-white'
         }`}>
-
-          <EnvironmentBadge />
           <TaskForm
             isFormVisible={isFormVisible}
             setIsFormVisible={setIsFormVisible}
-            title={title}
-            setTitle={setTitle}
-            description={description}
-            setDescription={setDescription}
-            priority={priority}
-            setPriority={setPriority}
-            errors={errors}
-            setErrors={setErrors}
             editingTask={editingTask}
-            onSubmit={editingTask ? updateTask : addTask}
-            onCancel={resetForm}
-            darkMode={darkMode}
+            onSubmit={handleFormSubmit}
+            onCancel={handleFormCancel}
           />
         </div>
         
         <TaskFilters 
           filter={filter} 
           setFilter={setFilter} 
-          stats={stats} 
-          darkMode={darkMode}
           tasks={tasks}
+          onClearCompleted={clearCompleted}
         />
         
         <TaskList
           tasks={filteredTasks}
           filter={filter}
-          darkMode={darkMode}
+          searchQuery={searchQuery}
           draggedTask={draggedTask}
           onToggleTask={toggleTask}
-          onEditTask={startEdit}
-          onDeleteTask={deleteTask}
+          onEditTask={handleStartEdit}
+          onDeleteTask={handleDeleteTask}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         />
       </div>
     </div>
+  );
+};
+
+/**
+ * Main App component wrapped with ThemeProvider
+ */
+const App = () => {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 };
 

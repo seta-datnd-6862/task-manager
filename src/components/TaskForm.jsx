@@ -1,31 +1,104 @@
-import React from 'react';
+import React, { memo, useRef, useEffect, useState, useCallback } from 'react';
 import { Plus, Check } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
-const TaskForm = ({ 
+/**
+ * TaskForm component
+ * Form for adding/editing tasks with validation
+ */
+const TaskForm = memo(({ 
   isFormVisible, 
   setIsFormVisible,
-  title,
-  setTitle,
-  description,
-  setDescription,
-  priority,
-  setPriority,
-  errors,
-  setErrors,
   editingTask,
   onSubmit,
-  onCancel,
-  darkMode 
+  onCancel
 }) => {
+  const { darkMode } = useTheme();
+  const titleInputRef = useRef(null);
+  
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState('medium');
+  const [errors, setErrors] = useState({});
+
+  // Auto-focus on title input when form becomes visible
+  useEffect(() => {
+    if (isFormVisible && titleInputRef.current) {
+      titleInputRef.current.focus();
+    }
+  }, [isFormVisible]);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingTask) {
+      setTitle(editingTask.title);
+      setDescription(editingTask.description);
+      setPriority(editingTask.priority);
+    } else {
+      setTitle('');
+      setDescription('');
+      setPriority('medium');
+    }
+  }, [editingTask]);
+
+  /**
+   * Validate form inputs
+   * @returns {boolean} true if valid
+   */
+  const validateForm = useCallback(() => {
+    const newErrors = {};
+    
+    if (!title.trim()) {
+      newErrors.title = 'Title is required';
+    } else if (title.trim().length < 3) {
+      newErrors.title = 'Title must be at least 3 characters';
+    } else if (title.trim().length > 100) {
+      newErrors.title = 'Title must be less than 100 characters';
+    }
+    
+    if (description.trim().length > 500) {
+      newErrors.description = 'Description must be less than 500 characters';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [title, description]);
+
+  /**
+   * Handle form submission
+   */
+  const handleSubmit = useCallback(() => {
+    if (!validateForm()) return;
+    
+    onSubmit({
+      title: title.trim(),
+      description: description.trim(),
+      priority
+    });
+    
+    // Reset form
+    setTitle('');
+    setDescription('');
+    setPriority('medium');
+    setErrors({});
+  }, [title, description, priority, validateForm, onSubmit]);
+
+  /**
+   * Handle form cancellation
+   */
+  const handleCancel = useCallback(() => {
+    setTitle('');
+    setDescription('');
+    setPriority('medium');
+    setErrors({});
+    onCancel();
+  }, [onCancel]);
+
   if (!isFormVisible) {
     return (
       <button
         onClick={() => setIsFormVisible(true)}
-        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors ${
-          darkMode
-            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-        }`}
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors bg-indigo-600 hover:bg-indigo-700 text-white"
       >
         <Plus size={20} />
         Add New Task
@@ -48,6 +121,7 @@ const TaskForm = ({
           Task Title *
         </label>
         <input
+          ref={titleInputRef}
           id="task-title"
           type="text"
           value={title}
@@ -61,7 +135,6 @@ const TaskForm = ({
               ? 'bg-gray-700 border-gray-600 text-white focus:ring-2 focus:ring-indigo-500'
               : 'bg-white border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
           } ${errors.title ? 'border-red-500' : ''}`}
-          autoFocus
         />
         {errors.title && (
           <p className="text-red-500 text-sm mt-1">{errors.title}</p>
@@ -121,7 +194,7 @@ const TaskForm = ({
 
       <div className="flex gap-3">
         <button
-          onClick={onSubmit}
+          onClick={handleSubmit}
           className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
         >
           {editingTask ? (
@@ -137,7 +210,7 @@ const TaskForm = ({
           )}
         </button>
         <button
-          onClick={onCancel}
+          onClick={handleCancel}
           className={`px-6 py-2 rounded-lg transition-colors ${
             darkMode
               ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -149,6 +222,8 @@ const TaskForm = ({
       </div>
     </div>
   );
-};
+});
+
+TaskForm.displayName = 'TaskForm';
 
 export default TaskForm;

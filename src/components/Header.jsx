@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
-const Header = ({ darkMode, onToggleDarkMode }) => {
+/**
+ * Header component
+ * Displays app title and theme toggle button
+ */
+const Header = memo(() => {
+  const { darkMode, toggleTheme } = useTheme();
+
   return (
     <header className="text-center mb-8 relative">
       <button
-        onClick={onToggleDarkMode}
+        onClick={toggleTheme}
         className={`absolute right-0 top-0 p-3 rounded-full transition-colors ${
           darkMode 
             ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' 
@@ -26,6 +33,8 @@ const Header = ({ darkMode, onToggleDarkMode }) => {
       </p>
     </header>
   );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;

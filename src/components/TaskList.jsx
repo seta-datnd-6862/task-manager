@@ -1,10 +1,64 @@
-import React from 'react';
+import React, { memo } from 'react';
 import TaskItem from './TaskItem';
+import { useTheme } from '../context/ThemeContext';
 
-const TaskList = ({ 
+/**
+ * EmptyState component
+ * Displayed when no tasks match the filter/search
+ */
+const EmptyState = memo(({ filter, searchQuery }) => {
+  const { darkMode } = useTheme();
+
+  const getMessage = () => {
+    if (searchQuery) {
+      return {
+        title: 'No tasks found',
+        subtitle: `No tasks match "${searchQuery}"`
+      };
+    }
+    
+    switch (filter) {
+      case 'active':
+        return {
+          title: 'No active tasks',
+          subtitle: 'All tasks are completed! 🎉'
+        };
+      case 'completed':
+        return {
+          title: 'No completed tasks',
+          subtitle: 'Start completing tasks to see them here'
+        };
+      default:
+        return {
+          title: 'No tasks yet',
+          subtitle: 'Add your first task to get started!'
+        };
+    }
+  };
+
+  const { title, subtitle } = getMessage();
+
+  return (
+    <div className={`rounded-lg shadow p-8 text-center ${
+      darkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500'
+    }`}>
+      <p className="text-lg font-medium">{title}</p>
+      <p className="text-sm mt-2">{subtitle}</p>
+    </div>
+  );
+});
+
+EmptyState.displayName = 'EmptyState';
+
+/**
+ * TaskList component
+ * Renders list of tasks with drag-and-drop support
+ * Memoized to prevent unnecessary re-renders
+ */
+const TaskList = memo(({ 
   tasks, 
   filter,
-  darkMode,
+  searchQuery,
   draggedTask,
   onToggleTask,
   onEditTask,
@@ -14,18 +68,7 @@ const TaskList = ({
   onDrop
 }) => {
   if (tasks.length === 0) {
-    return (
-      <div className={`rounded-lg shadow p-8 text-center ${
-        darkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500'
-      }`}>
-        <p className="text-lg">No tasks found</p>
-        <p className="text-sm mt-2">
-          {filter === 'all' 
-            ? 'Add your first task to get started!' 
-            : `No ${filter} tasks yet.`}
-        </p>
-      </div>
-    );
+    return <EmptyState filter={filter} searchQuery={searchQuery} />;
   }
 
   return (
@@ -34,18 +77,19 @@ const TaskList = ({
         <TaskItem
           key={task.id}
           task={task}
-          darkMode={darkMode}
           isDragging={draggedTask?.id === task.id}
-          onToggle={() => onToggleTask(task.id)}
-          onEdit={() => onEditTask(task)}
-          onDelete={() => onDeleteTask(task.id)}
-          onDragStart={(e) => onDragStart(e, task)}
+          onToggle={onToggleTask}
+          onEdit={onEditTask}
+          onDelete={onDeleteTask}
+          onDragStart={onDragStart}
           onDragOver={onDragOver}
-          onDrop={(e) => onDrop(e, task)}
+          onDrop={onDrop}
         />
       ))}
     </div>
   );
-};
+});
+
+TaskList.displayName = 'TaskList';
 
 export default TaskList;

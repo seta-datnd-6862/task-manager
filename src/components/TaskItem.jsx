@@ -1,35 +1,55 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { Trash2, Check, Edit2, GripVertical } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
-const TaskItem = ({ 
+/**
+ * Priority badge colors configuration
+ */
+const PRIORITY_COLORS = {
+  light: {
+    high: 'bg-red-100 text-red-800 border-red-300',
+    medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    low: 'bg-green-100 text-green-800 border-green-300'
+  },
+  dark: {
+    high: 'bg-red-900/30 text-red-300 border-red-700',
+    medium: 'bg-yellow-900/30 text-yellow-300 border-yellow-700',
+    low: 'bg-green-900/30 text-green-300 border-green-700'
+  }
+};
+
+/**
+ * TaskItem component
+ * Individual task card with drag-and-drop support
+ * Memoized to prevent unnecessary re-renders
+ */
+const TaskItem = memo(({ 
   task, 
-  darkMode,
+  isDragging,
   onToggle,
   onEdit,
   onDelete,
   onDragStart,
   onDragOver,
-  onDrop,
-  isDragging
+  onDrop
 }) => {
-  const priorityColors = {
-    high: 'bg-red-100 text-red-800 border-red-300',
-    medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    low: 'bg-green-100 text-green-800 border-green-300'
-  };
+  const { darkMode } = useTheme();
 
-  const priorityColorsDark = {
-    high: 'bg-red-900/30 text-red-300 border-red-700',
-    medium: 'bg-yellow-900/30 text-yellow-300 border-yellow-700',
-    low: 'bg-green-900/30 text-green-300 border-green-700'
-  };
+  // Memoized handlers to prevent prop changes
+  const handleToggle = useCallback(() => onToggle(task.id), [onToggle, task.id]);
+  const handleEdit = useCallback(() => onEdit(task), [onEdit, task]);
+  const handleDelete = useCallback(() => onDelete(task.id), [onDelete, task.id]);
+  const handleDragStart = useCallback((e) => onDragStart(e, task), [onDragStart, task]);
+  const handleDrop = useCallback((e) => onDrop(e, task), [onDrop, task]);
+
+  const priorityColors = darkMode ? PRIORITY_COLORS.dark : PRIORITY_COLORS.light;
 
   return (
     <article
       draggable
-      onDragStart={onDragStart}
+      onDragStart={handleDragStart}
       onDragOver={onDragOver}
-      onDrop={onDrop}
+      onDrop={handleDrop}
       className={`rounded-lg shadow hover:shadow-md transition-all p-4 cursor-move ${
         darkMode ? 'bg-gray-800' : 'bg-white'
       } ${task.completed ? 'opacity-75' : ''} ${
@@ -37,14 +57,16 @@ const TaskItem = ({
       }`}
     >
       <div className="flex items-start gap-4">
+        {/* Drag Handle */}
         <div className={`flex-shrink-0 cursor-grab active:cursor-grabbing ${
           darkMode ? 'text-gray-600' : 'text-gray-400'
         }`}>
           <GripVertical size={20} />
         </div>
 
+        {/* Checkbox */}
         <button
-          onClick={onToggle}
+          onClick={handleToggle}
           className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
             task.completed
               ? 'bg-green-500 border-green-500'
@@ -57,8 +79,9 @@ const TaskItem = ({
           {task.completed && <Check size={16} className="text-white" />}
         </button>
         
+        {/* Task Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h3 className={`text-lg font-medium ${
               task.completed
                 ? darkMode ? 'line-through text-gray-500' : 'line-through text-gray-500'
@@ -67,7 +90,7 @@ const TaskItem = ({
               {task.title}
             </h3>
             <span className={`text-xs px-2 py-1 rounded border ${
-              darkMode ? priorityColorsDark[task.priority] : priorityColors[task.priority]
+              priorityColors[task.priority]
             }`}>
               {task.priority.toUpperCase()}
             </span>
@@ -86,7 +109,7 @@ const TaskItem = ({
           <time className={`text-xs mt-2 block ${
             darkMode ? 'text-gray-500' : 'text-gray-400'
           }`}>
-            {new Date(task.createdAt).toLocaleDateString('vi-VN', {
+            {new Date(task.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
@@ -96,9 +119,10 @@ const TaskItem = ({
           </time>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex gap-2">
           <button
-            onClick={onEdit}
+            onClick={handleEdit}
             className={`flex-shrink-0 p-2 rounded-lg transition-colors ${
               darkMode
                 ? 'text-blue-400 hover:text-blue-300 hover:bg-gray-700'
@@ -110,7 +134,7 @@ const TaskItem = ({
           </button>
           
           <button
-            onClick={onDelete}
+            onClick={handleDelete}
             className={`flex-shrink-0 p-2 rounded-lg transition-colors ${
               darkMode
                 ? 'text-red-400 hover:text-red-300 hover:bg-gray-700'
@@ -124,6 +148,19 @@ const TaskItem = ({
       </div>
     </article>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for memo
+  // Only re-render if these props change
+  return (
+    prevProps.task.id === nextProps.task.id &&
+    prevProps.task.title === nextProps.task.title &&
+    prevProps.task.description === nextProps.task.description &&
+    prevProps.task.priority === nextProps.task.priority &&
+    prevProps.task.completed === nextProps.task.completed &&
+    prevProps.isDragging === nextProps.isDragging
+  );
+});
+
+TaskItem.displayName = 'TaskItem';
 
 export default TaskItem;
